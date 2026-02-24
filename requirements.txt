@@ -10,4 +10,4 @@ pandas>=2.1.0
 matplotlib>=3.8.0
 reportlab>=4.0.7
 python-dotenv>=1.0.0
-setuptools>=69.0
+setuptools<70.0.0
