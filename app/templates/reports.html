@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% block title %}Reports - FaceAttend{% endblock %}
+{% block page_title %}Attendance Reports{% endblock %}
+
+{% block content %}
+<!-- Date Range Filters -->
+<div class="card-glass mb-4">
+    <div class="card-glass-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="rpt-start">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">End Date</label>
+                <input type="date" class="form-control" id="rpt-end">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Subject</label>
+                <select class="form-select" id="rpt-subject">
+                    <option value="">All Subjects</option>
+                    {% for s in subjects %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100" onclick="loadReports()">
+                    <i class="bi bi-graph-up me-2"></i>Generate Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="row g-4 mb-4" id="summary-cards" style="display:none">
+    <div class="col-md-3">
+        <div class="stat-card stat-card-blue">
+            <div class="stat-icon"><i class="bi bi-calendar-check-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value" id="rpt-total">0</div>
+                <div class="stat-label">Total Records</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card-green">
+            <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value" id="rpt-students">0</div>
+                <div class="stat-label">Unique Students</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card-purple">
+            <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value" id="rpt-present">0</div>
+                <div class="stat-label">Present</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-card-orange">
+            <div class="stat-icon"><i class="bi bi-exclamation-circle-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value" id="rpt-late">0</div>
+                <div class="stat-label">Late</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart -->
+<div class="row g-4 mb-4" id="chart-section" style="display:none">
+    <div class="col-12">
+        <div class="card-glass">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-bar-chart-line-fill me-2 text-primary"></i>Attendance Trend</h6>
+            </div>
+            <div class="card-glass-body">
+                <canvas id="rptChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Per-Student Table -->
+<div class="card-glass" id="student-report-section" style="display:none">
+    <div class="card-glass-header">
+        <h6 class="mb-0 fw-600"><i class="bi bi-person-lines-fill me-2 text-success"></i>Per-Student Summary</h6>
+        <button class="btn btn-success btn-sm" onclick="exportCSV()">
+            <i class="bi bi-download me-2"></i>Export CSV
+        </button>
+    </div>
+    <div class="card-glass-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Present</th>
+                        <th>Late</th>
+                        <th>Absent</th>
+                        <th>Total</th>
+                        <th>Attendance %</th>
+                    </tr>
+                </thead>
+                <tbody id="student-report-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Default date range: last 30 days
+    const today = new Date();
+    const monthAgo = new Date(today - 30 * 24 * 60 * 60 * 1000);
+    document.getElementById('rpt-end').value = today.toISOString().split('T')[0];
+    document.getElementById('rpt-start').value = monthAgo.toISOString().split('T')[0];
+
+    let rptChart = null;
+
+    function loadReports() {
+        const start = document.getElementById('rpt-start').value;
+        const end = document.getElementById('rpt-end').value;
+        const subjectId = document.getElementById('rpt-subject').value;
+
+        let params = `?start=${start}&end=${end}`;
+        if (subjectId) params += `&subject_id=${subjectId}`;
+
+        fetch('/reports/api/summary' + params)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('summary-cards').style.display = '';
+                document.getElementById('chart-section').style.display = '';
+                document.getElementById('student-report-section').style.display = '';
+
+                document.getElementById('rpt-total').textContent = data.total_records;
+                document.getElementById('rpt-students').textContent = data.unique_students;
+                document.getElementById('rpt-present').textContent = data.by_status.present || 0;
+                document.getElementById('rpt-late').textContent = data.by_status.late || 0;
+
+                // Chart
+                if (rptChart) rptChart.destroy();
+                const ctx = document.getElementById('rptChart').getContext('2d');
+                rptChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.chart_labels,
+                        datasets: [{
+                            label: 'Attendance',
+                            data: data.chart_data,
+                            borderColor: 'rgba(99,102,241,1)',
+                            backgroundColor: 'rgba(99,102,241,0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                            x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            });
+
+        // Per-student
+        fetch('/reports/api/student_report' + params)
+            .then(r => r.json())
+            .then(rows => {
+                document.getElementById('student-report-body').innerHTML = rows.map(r => `
+            <tr>
+                <td><code>${r.student_id}</code></td>
+                <td><strong>${r.name}</strong></td>
+                <td>${r.department || '—'}</td>
+                <td><span class="text-success fw-600">${r.present}</span></td>
+                <td><span class="text-warning">${r.late}</span></td>
+                <td><span class="text-danger">${r.absent}</span></td>
+                <td>${r.total}</td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-grow-1" style="height:6px">
+                            <div class="progress-bar ${r.attendance_pct >= 75 ? 'bg-success' : r.attendance_pct >= 50 ? 'bg-warning' : 'bg-danger'}"
+                                 style="width:${r.attendance_pct}%"></div>
+                        </div>
+                        <span class="small">${r.attendance_pct}%</span>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+            });
+    }
+
+    function exportCSV() {
+        const start = document.getElementById('rpt-start').value;
+        const end = document.getElementById('rpt-end').value;
+        const subjectId = document.getElementById('rpt-subject').value;
+        let url = `/reports/api/export_csv?start=${start}&end=${end}`;
+        if (subjectId) url += `&subject_id=${subjectId}`;
+        window.location = url;
+    }
+
+    // Auto-load on page open
+    loadReports();
+</script>
+{% endblock %}

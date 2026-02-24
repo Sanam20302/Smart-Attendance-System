@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Subjects - FaceAttend{% endblock %}
+{% block page_title %}Subject Management{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Add Subject -->
+    <div class="col-lg-4">
+        <div class="card-glass">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-plus-circle-fill me-2 text-primary"></i>Add Subject</h6>
+            </div>
+            <div class="card-glass-body">
+                <div class="mb-3">
+                    <label class="form-label">Subject Code <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="sub-code" placeholder="e.g. CS301">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Subject Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="sub-name" placeholder="e.g. Data Structures">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Department</label>
+                    <input type="text" class="form-control" id="sub-dept" placeholder="e.g. Computer Science">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Instructor</label>
+                    <input type="text" class="form-control" id="sub-instructor" placeholder="Instructor name">
+                </div>
+                <button class="btn btn-primary w-100" onclick="addSubject()">
+                    <i class="bi bi-plus-lg me-2"></i>Add Subject
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject List -->
+    <div class="col-lg-8">
+        <div class="card-glass">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-book-fill me-2 text-info"></i>All Subjects</h6>
+                <small class="text-muted">{{ subjects|length }} subjects</small>
+            </div>
+            <div class="card-glass-body p-0">
+                {% if subjects %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0" id="subject-table">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Instructor</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="subject-body">
+                            {% for s in subjects %}
+                            <tr id="sub-row-{{ s.id }}">
+                                <td><code>{{ s.code }}</code></td>
+                                <td><strong>{{ s.name }}</strong></td>
+                                <td>{{ s.department or '—' }}</td>
+                                <td>{{ s.instructor or '—' }}</td>
+                                <td>
+                                    <button class="btn btn-xs btn-outline-danger" onclick="deleteSubject({{ s.id }})">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state py-5">
+                    <i class="bi bi-book"></i>
+                    <p>No subjects yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function addSubject() {
+        const code = document.getElementById('sub-code').value.trim();
+        const name = document.getElementById('sub-name').value.trim();
+        const dept = document.getElementById('sub-dept').value.trim();
+        const instructor = document.getElementById('sub-instructor').value.trim();
+
+        if (!code || !name) { showToast('Code and Name are required', 'warning'); return; }
+
+        fetch('/attendance/subjects/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, name, department: dept, instructor })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Subject added!', 'success');
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    showToast(data.error || 'Failed', 'danger');
+                }
+            });
+    }
+
+    function deleteSubject(id) {
+        if (!confirm('Delete this subject? Existing attendance records will remain.')) return;
+        fetch(`/attendance/subjects/${id}/delete`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById(`sub-row-${id}`).remove();
+                    showToast('Subject deleted', 'success');
+                }
+            });
+    }
+</script>
+{% endblock %}

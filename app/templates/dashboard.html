@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - FaceAttend{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-blue">
+            <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.total_students if stats else 0 }}</div>
+                <div class="stat-label">Total Students</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-green">
+            <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.today_attendance if stats else 0 }}</div>
+                <div class="stat-label">Present Today</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-purple">
+            <div class="stat-icon"><i class="bi bi-book-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.total_subjects if stats else 0 }}</div>
+                <div class="stat-label">Subjects</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card stat-card-orange">
+            <div class="stat-icon"><i class="bi bi-percent"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ stats.attendance_pct if stats else 0 }}%</div>
+                <div class="stat-label">Attendance Rate</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart + Recent Attendance -->
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="card-glass">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-bar-chart-line-fill me-2 text-primary"></i>7-Day Attendance
+                    Trend</h6>
+                <small class="text-muted">{{ today }}</small>
+            </div>
+            <div class="card-glass-body">
+                <canvas id="attendanceChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="card-glass h-100">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-clock-history me-2 text-success"></i>Recent Activity</h6>
+                <a href="{{ url_for('attendance.list_attendance') }}" class="btn btn-xs btn-outline-primary">View
+                    All</a>
+            </div>
+            <div class="card-glass-body p-0">
+                {% if recent_attendance %}
+                <ul class="activity-list">
+                    {% for r in recent_attendance %}
+                    <li class="activity-item">
+                        <div class="activity-avatar">
+                            {% if r.student and r.student.photo_path %}
+                            <img src="{{ url_for('static', filename=r.student.photo_path) }}" alt="">
+                            {% else %}
+                            <i class="bi bi-person-fill"></i>
+                            {% endif %}
+                        </div>
+                        <div class="activity-info">
+                            <div class="activity-name">{{ r.student.name if r.student else 'Unknown' }}</div>
+                            <div class="activity-meta">
+                                {{ r.time_in.strftime('%H:%M') if r.time_in else '' }}
+                                {% if r.subject %} · {{ r.subject.name }}{% endif %}
+                            </div>
+                        </div>
+                        <span class="badge-status badge-present">Present</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="empty-state py-5">
+                    <i class="bi bi-calendar-x"></i>
+                    <p>No attendance today</p>
+                    <a href="{{ url_for('camera.camera_page') }}" class="btn btn-primary btn-sm mt-2">
+                        <i class="bi bi-camera-video-fill me-1"></i>Start Session
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-4 mt-1">
+    <div class="col-12">
+        <div class="card-glass">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-lightning-fill me-2 text-warning"></i>Quick Actions</h6>
+            </div>
+            <div class="card-glass-body">
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="{{ url_for('camera.camera_page') }}" class="btn btn-primary">
+                        <i class="bi bi-camera-video-fill me-2"></i>Start Live Attendance
+                    </a>
+                    <a href="{{ url_for('students.add_student') }}" class="btn btn-success">
+                        <i class="bi bi-person-plus-fill me-2"></i>Add Student
+                    </a>
+                    <a href="{{ url_for('attendance.list_subjects') }}" class="btn btn-info text-white">
+                        <i class="bi bi-book-fill me-2"></i>Manage Subjects
+                    </a>
+                    <a href="{{ url_for('reports.reports_page') }}" class="btn btn-warning text-dark">
+                        <i class="bi bi-download me-2"></i>Export Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ chart_labels | tojson }},
+        datasets: [{
+            label: 'Students Present',
+            data: {{ chart_data | tojson }},
+        backgroundColor: 'rgba(99, 102, 241, 0.7)',
+        borderColor: 'rgba(99, 102, 241, 1)',
+        borderWidth: 2,
+        borderRadius: 8,
+        borderSkipped: false
+        }]
+    },
+        options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: ctx => ` ${ctx.raw} students present`
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#94a3b8', stepSize: 1 }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { color: '#94a3b8' }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

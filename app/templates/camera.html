@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% block title %}Live Attendance - FaceAttend{% endblock %}
+{% block page_title %}Live Face Recognition{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Camera Feed -->
+    <div class="col-xl-8">
+        <div class="card-glass">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-camera-video-fill me-2 text-danger"></i>Camera Feed</h6>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="status-dot" id="cam-status-dot"></span>
+                    <small id="cam-status-text" class="text-muted">Stopped</small>
+                </div>
+            </div>
+            <div class="card-glass-body p-0 position-relative">
+                <div class="camera-container">
+                    <img id="camera-feed" src="{{ url_for('camera.video_feed') }}" alt="Camera Feed"
+                        class="camera-feed">
+                    <div class="camera-overlay" id="camera-overlay">
+                        <div class="camera-placeholder">
+                            <i class="bi bi-camera-video fs-1 mb-3"></i>
+                            <p class="mb-2">Camera Not Started</p>
+                            <small>Configure settings and click Start</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="col-xl-4">
+        <!-- Session Setup -->
+        <div class="card-glass mb-4">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-sliders me-2 text-primary"></i>Session Setup</h6>
+            </div>
+            <div class="card-glass-body">
+                <div class="mb-3">
+                    <label class="form-label">Subject <small class="text-muted">(optional)</small></label>
+                    <select class="form-select" id="subject-select">
+                        <option value="">-- Select Subject --</option>
+                        {% for s in subjects %}
+                        <option value="{{ s.id }}">{{ s.name }} ({{ s.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Recognition Tolerance</label>
+                    <input type="range" class="form-range" id="tolerance" min="0.3" max="0.7" step="0.05" value="0.5">
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">Strict</small>
+                        <small class="text-primary fw-600" id="tolerance-val">0.50</small>
+                        <small class="text-muted">Lenient</small>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" id="start-btn" onclick="startCamera()">
+                        <i class="bi bi-play-fill me-2"></i>Start Session
+                    </button>
+                    <button class="btn btn-danger" id="stop-btn" onclick="stopCamera()" disabled>
+                        <i class="bi bi-stop-fill me-2"></i>Stop Session
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Marked Count -->
+        <div class="card-glass mb-4">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-check-all me-2 text-success"></i>Session Status</h6>
+            </div>
+            <div class="card-glass-body text-center">
+                <div class="big-number" id="marked-count">0</div>
+                <div class="text-muted small">Students Marked Present</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity Log -->
+<div class="row g-4 mt-1">
+    <div class="col-12">
+        <div class="card-glass">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-list-check me-2 text-info"></i>Recognition Log</h6>
+                <button class="btn btn-xs btn-outline-secondary"
+                    onclick="document.getElementById('log').innerHTML=''">Clear</button>
+            </div>
+            <div class="card-glass-body">
+                <div id="log" class="recognition-log">
+                    <div class="text-muted text-center small py-4">Start a session to see recognition events…</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let statusInterval = null;
+    let isRunning = false;
+
+    document.getElementById('tolerance').addEventListener('input', function () {
+        document.getElementById('tolerance-val').textContent = parseFloat(this.value).toFixed(2);
+    });
+
+    function startCamera() {
+        const subjectId = document.getElementById('subject-select').value || null;
+        const tolerance = parseFloat(document.getElementById('tolerance').value);
+
+        fetch('/camera/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subject_id: subjectId ? parseInt(subjectId) : null, tolerance })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    isRunning = true;
+                    document.getElementById('start-btn').disabled = true;
+                    document.getElementById('stop-btn').disabled = false;
+                    document.getElementById('cam-status-dot').classList.add('active');
+                    document.getElementById('cam-status-text').textContent = 'Live';
+                    document.getElementById('camera-overlay').style.display = 'none';
+                    document.getElementById('camera-feed').src = '/camera/feed?' + Date.now();
+                    document.getElementById('cam-badge').style.display = 'inline-flex';
+                    showToast('Camera started successfully', 'success');
+                    startPolling();
+                } else {
+                    showToast(data.error || 'Failed to start camera', 'danger');
+                }
+            })
+            .catch(() => showToast('Failed to start camera', 'danger'));
+    }
+
+    function stopCamera() {
+        fetch('/camera/stop', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                isRunning = false;
+                document.getElementById('start-btn').disabled = false;
+                document.getElementById('stop-btn').disabled = true;
+                document.getElementById('cam-status-dot').classList.remove('active');
+                document.getElementById('cam-status-text').textContent = 'Stopped';
+                document.getElementById('camera-overlay').style.display = 'flex';
+                document.getElementById('cam-badge').style.display = 'none';
+                showToast('Session stopped', 'info');
+                if (statusInterval) { clearInterval(statusInterval); statusInterval = null; }
+            });
+    }
+
+    function startPolling() {
+        statusInterval = setInterval(() => {
+            fetch('/camera/status')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('marked-count').textContent = data.marked_count || 0;
+                    const log = document.getElementById('log');
+                    if (data.messages && data.messages.length > 0) {
+                        log.innerHTML = data.messages.map(m =>
+                            `<div class="log-entry"><i class="bi bi-check-circle-fill text-success me-2"></i>${m}</div>`
+                        ).join('');
+                    }
+                });
+        }, 2000);
+    }
+</script>
+{% endblock %}
