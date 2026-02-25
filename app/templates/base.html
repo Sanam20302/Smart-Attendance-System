@@ -98,7 +98,8 @@
             <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
             <div class="topbar-right ms-auto d-flex align-items-center gap-3">
                 <div class="text-muted small" id="current-time"></div>
-                <button class="btn btn-primary btn-sm" onclick="window.location='{{ url_for('camera.camera_page') }}'">
+                <button class="btn btn-primary btn-sm" data-url="{{ url_for('camera.camera_page') }}"
+                    onclick="window.location=this.getAttribute('data-url')">
                     <i class="bi bi-camera-video-fill me-1"></i>Start Session
                 </button>
             </div>
