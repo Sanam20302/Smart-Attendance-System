@@ -38,30 +38,23 @@ class Student(db.Model):
         return f'<Student {self.student_id}: {self.name}>'
 
 
-class Subject(db.Model):
-    __tablename__ = 'subjects'
+class Department(db.Model):
+    __tablename__ = 'departments'
 
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(20), unique=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
-    department = db.Column(db.String(100), nullable=True)
-    instructor = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relationships
-    attendances = db.relationship('Attendance', backref='subject', lazy=True)
 
     def to_dict(self):
         return {
             'id': self.id,
             'code': self.code,
-            'name': self.name,
-            'department': self.department,
-            'instructor': self.instructor
+            'name': self.name
         }
 
     def __repr__(self):
-        return f'<Subject {self.code}: {self.name}>'
+        return f'<Department {self.code}: {self.name}>'
 
 
 class Attendance(db.Model):
@@ -69,7 +62,6 @@ class Attendance(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=False)
-    subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=True)
     date = db.Column(db.Date, nullable=False, default=datetime.utcnow().date)
     time_in = db.Column(db.Time, nullable=True)
     status = db.Column(db.String(20), default='present')  # present, absent, late
@@ -83,8 +75,7 @@ class Attendance(db.Model):
             'student_id': self.student_id,
             'student_name': self.student.name if self.student else None,
             'student_roll': self.student.student_id if self.student else None,
-            'subject_id': self.subject_id,
-            'subject_name': self.subject.name if self.subject else None,
+            'student_department': self.student.department if self.student else None,
             'date': self.date.isoformat() if self.date else None,
             'time_in': self.time_in.strftime('%H:%M:%S') if self.time_in else None,
             'status': self.status,

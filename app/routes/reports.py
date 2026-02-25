@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify, send_file
-from app.models import Attendance, Student, Subject
+from app.models import Attendance, Student, Department
 from app import db
 from datetime import date, datetime, timedelta
 from sqlalchemy import func
@@ -11,9 +11,9 @@ reports_bp = Blueprint('reports', __name__)
 
 @reports_bp.route('/')
 def reports_page():
-    subjects = Subject.query.order_by(Subject.name).all()
+    departments = Department.query.order_by(Department.name).all()
     students = Student.query.filter_by(is_active=True).order_by(Student.name).all()
-    return render_template('reports.html', subjects=subjects, students=students)
+    return render_template('reports.html', departments=departments, students=students)
 
 
 @reports_bp.route('/api/summary')
@@ -21,7 +21,7 @@ def api_summary():
     """Summary stats for a date range."""
     start_str = request.args.get('start')
     end_str = request.args.get('end')
-    subject_id = request.args.get('subject_id', type=int)
+    department = request.args.get('department')
 
     try:
         start_date = datetime.strptime(start_str, '%Y-%m-%d').date() if start_str else (date.today() - timedelta(days=30))
@@ -34,8 +34,8 @@ def api_summary():
         Attendance.date >= start_date,
         Attendance.date <= end_date
     )
-    if subject_id:
-        query = query.filter_by(subject_id=subject_id)
+    if department:
+        query = query.join(Student).filter(Student.department == department)
 
     records = query.all()
     total_records = len(records)
@@ -71,7 +71,7 @@ def student_report():
     """Per-student attendance summary for a date range."""
     start_str = request.args.get('start')
     end_str = request.args.get('end')
-    subject_id = request.args.get('subject_id', type=int)
+    department = request.args.get('department')
 
     try:
         start_date = datetime.strptime(start_str, '%Y-%m-%d').date() if start_str else (date.today() - timedelta(days=30))
@@ -84,8 +84,8 @@ def student_report():
         Attendance.date >= start_date,
         Attendance.date <= end_date
     )
-    if subject_id:
-        query = query.filter_by(subject_id=subject_id)
+    if department:
+        query = query.join(Student).filter(Student.department == department)
 
     records = query.all()
     student_map = {}
@@ -117,7 +117,7 @@ def export_csv():
     """Export attendance records as CSV."""
     start_str = request.args.get('start')
     end_str = request.args.get('end')
-    subject_id = request.args.get('subject_id', type=int)
+    department = request.args.get('department')
 
     try:
         start_date = datetime.strptime(start_str, '%Y-%m-%d').date() if start_str else (date.today() - timedelta(days=30))
@@ -131,20 +131,19 @@ def export_csv():
         Attendance.date <= end_date
     ).order_by(Attendance.date, Attendance.student_id)
 
-    if subject_id:
-        query = query.filter_by(subject_id=subject_id)
+    if department:
+        query = query.join(Student).filter(Student.department == department)
 
     records = query.all()
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Student ID', 'Name', 'Department', 'Subject', 'Date', 'Time In', 'Status', 'Confidence (%)', 'Marked By'])
+    writer.writerow(['Student ID', 'Name', 'Department', 'Date', 'Time In', 'Status', 'Confidence (%)', 'Marked By'])
     for r in records:
         writer.writerow([
             r.student.student_id if r.student else '',
             r.student.name if r.student else '',
             r.student.department if r.student else '',
-            r.subject.name if r.subject else '',
             r.date.isoformat() if r.date else '',
             r.time_in.strftime('%H:%M:%S') if r.time_in else '',
             r.status,

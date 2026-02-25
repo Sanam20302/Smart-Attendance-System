@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, current_app, flash, redirect, url_for
 from werkzeug.utils import secure_filename
-from app.models import Student
+from app.models import Student, Department
 from app import db
 from app.face_utils import encode_face_from_image, save_encoding, allowed_file
 import os
@@ -70,7 +70,8 @@ def add_student():
 
         return jsonify({'success': True, 'student': student.to_dict(), 'message': 'Student added successfully!'})
 
-    return render_template('add_student.html')
+    departments = Department.query.order_by(Department.name).all()
+    return render_template('add_student.html', departments=departments)
 
 
 @students_bp.route('/<int:student_id>', methods=['GET'])
@@ -108,7 +109,8 @@ def edit_student(student_id):
         db.session.commit()
         return jsonify({'success': True, 'student': student.to_dict(), 'message': 'Student updated successfully!'})
 
-    return render_template('edit_student.html', student=student)
+    departments = Department.query.order_by(Department.name).all()
+    return render_template('edit_student.html', student=student, departments=departments)
 
 
 @students_bp.route('/<int:student_id>/delete', methods=['POST'])

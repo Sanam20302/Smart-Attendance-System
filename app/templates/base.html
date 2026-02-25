@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,151 +12,160 @@
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <!-- Custom CSS -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 
     {% block head %}{% endblock %}
 </head>
+
 <body>
 
-<!-- Sidebar -->
-<div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-        <div class="brand">
-            <div class="brand-icon">
-                <i class="bi bi-camera-fill"></i>
-            </div>
-            <div>
-                <span class="brand-name">FaceAttend</span>
-                <small class="brand-sub">Smart Attendance</small>
-            </div>
-        </div>
-    </div>
-
-    <nav class="sidebar-nav">
-        <div class="nav-section-label">Main</div>
-        <a href="{{ url_for('main.dashboard') }}" class="nav-link-item {% if request.endpoint == 'main.dashboard' or request.endpoint == 'main.index' %}active{% endif %}">
-            <i class="bi bi-grid-1x2-fill"></i>
-            <span>Dashboard</span>
-        </a>
-        <a href="{{ url_for('camera.camera_page') }}" class="nav-link-item {% if request.blueprint == 'camera' %}active{% endif %}">
-            <i class="bi bi-camera-video-fill"></i>
-            <span>Live Attendance</span>
-            <span class="nav-badge pulse" id="cam-badge" style="display:none">LIVE</span>
-        </a>
-
-        <div class="nav-section-label mt-3">Management</div>
-        <a href="{{ url_for('students.list_students') }}" class="nav-link-item {% if request.blueprint == 'students' %}active{% endif %}">
-            <i class="bi bi-people-fill"></i>
-            <span>Students</span>
-        </a>
-        <a href="{{ url_for('attendance.list_attendance') }}" class="nav-link-item {% if request.blueprint == 'attendance' and request.endpoint != 'attendance.list_subjects' %}active{% endif %}">
-            <i class="bi bi-clipboard-check-fill"></i>
-            <span>Attendance Records</span>
-        </a>
-        <a href="{{ url_for('attendance.list_subjects') }}" class="nav-link-item {% if request.endpoint == 'attendance.list_subjects' %}active{% endif %}">
-            <i class="bi bi-book-fill"></i>
-            <span>Subjects</span>
-        </a>
-
-        <div class="nav-section-label mt-3">Analytics</div>
-        <a href="{{ url_for('reports.reports_page') }}" class="nav-link-item {% if request.blueprint == 'reports' %}active{% endif %}">
-            <i class="bi bi-bar-chart-fill"></i>
-            <span>Reports</span>
-        </a>
-    </nav>
-
-    <div class="sidebar-footer">
-        <div class="d-flex align-items-center gap-2">
-            <div class="avatar-sm">
-                <i class="bi bi-person-fill"></i>
-            </div>
-            <div>
-                <div class="text-white fw-600 small">Instructor</div>
-                <div class="text-white-50 x-small">Admin</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Main Content -->
-<div class="main-content" id="main-content">
-    <!-- Top Bar -->
-    <div class="topbar">
-        <button class="btn btn-icon me-2" id="sidebar-toggle" onclick="toggleSidebar()">
-            <i class="bi bi-list fs-5"></i>
-        </button>
-        <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
-        <div class="topbar-right ms-auto d-flex align-items-center gap-3">
-            <div class="text-muted small" id="current-time"></div>
-            <button class="btn btn-primary btn-sm" onclick="window.location='{{ url_for('camera.camera_page') }}'">
-                <i class="bi bi-camera-video-fill me-1"></i>Start Session
-            </button>
-        </div>
-    </div>
-
-    <!-- Page Content -->
-    <div class="page-content">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="bi bi-camera-fill"></i>
                 </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+                <div>
+                    <span class="brand-name">FaceAttend</span>
+                    <small class="brand-sub">Smart Attendance</small>
+                </div>
+            </div>
+        </div>
 
-        {% block content %}{% endblock %}
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Main</div>
+            <a href="{{ url_for('main.dashboard') }}"
+                class="nav-link-item {% if request.endpoint == 'main.dashboard' or request.endpoint == 'main.index' %}active{% endif %}">
+                <i class="bi bi-grid-1x2-fill"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{{ url_for('camera.camera_page') }}"
+                class="nav-link-item {% if request.blueprint == 'camera' %}active{% endif %}">
+                <i class="bi bi-camera-video-fill"></i>
+                <span>Live Attendance</span>
+                <span class="nav-badge pulse" id="cam-badge" style="display:none">LIVE</span>
+            </a>
+
+            <div class="nav-section-label mt-3">Management</div>
+            <a href="{{ url_for('students.list_students') }}"
+                class="nav-link-item {% if request.blueprint == 'students' %}active{% endif %}">
+                <i class="bi bi-people-fill"></i>
+                <span>Students</span>
+            </a>
+            <a href="{{ url_for('attendance.list_attendance') }}"
+                class="nav-link-item {% if request.blueprint == 'attendance' and request.endpoint != 'attendance.list_departments' %}active{% endif %}">
+                <i class="bi bi-clipboard-check-fill"></i>
+                <span>Attendance Records</span>
+            </a>
+            <a href="{{ url_for('attendance.list_departments') }}"
+                class="nav-link-item {% if request.endpoint == 'attendance.list_departments' %}active{% endif %}">
+                <i class="bi bi-building"></i>
+                <span>Departments</span>
+            </a>
+
+            <div class="nav-section-label mt-3">Analytics</div>
+            <a href="{{ url_for('reports.reports_page') }}"
+                class="nav-link-item {% if request.blueprint == 'reports' %}active{% endif %}">
+                <i class="bi bi-bar-chart-fill"></i>
+                <span>Reports</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="d-flex align-items-center gap-2">
+                <div class="avatar-sm">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                <div>
+                    <div class="text-white fw-600 small">Instructor</div>
+                    <div class="text-white-50 x-small">Admin</div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
-<!-- Toast Container -->
-<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container"></div>
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+        <!-- Top Bar -->
+        <div class="topbar">
+            <button class="btn btn-icon me-2" id="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="bi bi-list fs-5"></i>
+            </button>
+            <div class="topbar-title">{% block page_title %}Dashboard{% endblock %}</div>
+            <div class="topbar-right ms-auto d-flex align-items-center gap-3">
+                <div class="text-muted small" id="current-time"></div>
+                <button class="btn btn-primary btn-sm" onclick="window.location='{{ url_for('camera.camera_page') }}'">
+                    <i class="bi bi-camera-video-fill me-1"></i>Start Session
+                </button>
+            </div>
+        </div>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <!-- Page Content -->
+        <div class="page-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
 
-<script>
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const main = document.getElementById('main-content');
-    sidebar.classList.toggle('collapsed');
-    main.classList.toggle('expanded');
-}
+            {% block content %}{% endblock %}
+        </div>
+    </div>
 
-// Clock
-function updateClock() {
-    const el = document.getElementById('current-time');
-    if (el) el.textContent = new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-}
-setInterval(updateClock, 1000);
-updateClock();
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container"></div>
 
-// Toast helper
-function showToast(message, type='success') {
-    const id = 'toast-' + Date.now();
-    const icons = {success:'check-circle-fill', danger:'exclamation-triangle-fill', warning:'exclamation-circle-fill', info:'info-circle-fill'};
-    const html = `
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.getElementById('main-content');
+            sidebar.classList.toggle('collapsed');
+            main.classList.toggle('expanded');
+        }
+
+        // Clock
+        function updateClock() {
+            const el = document.getElementById('current-time');
+            if (el) el.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Toast helper
+        function showToast(message, type = 'success') {
+            const id = 'toast-' + Date.now();
+            const icons = { success: 'check-circle-fill', danger: 'exclamation-triangle-fill', warning: 'exclamation-circle-fill', info: 'info-circle-fill' };
+            const html = `
         <div id="${id}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
             <div class="d-flex">
                 <div class="toast-body">
-                    <i class="bi bi-${icons[type]||'info-circle-fill'} me-2"></i>${message}
+                    <i class="bi bi-${icons[type] || 'info-circle-fill'} me-2"></i>${message}
                 </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
             </div>
         </div>`;
-    document.getElementById('toast-container').insertAdjacentHTML('beforeend', html);
-    const el = document.getElementById(id);
-    new bootstrap.Toast(el, {delay: 4000}).show();
-    el.addEventListener('hidden.bs.toast', () => el.remove());
-}
-</script>
+            document.getElementById('toast-container').insertAdjacentHTML('beforeend', html);
+            const el = document.getElementById(id);
+            new bootstrap.Toast(el, { delay: 4000 }).show();
+            el.addEventListener('hidden.bs.toast', () => el.remove());
+        }
+    </script>
 
-{% block scripts %}{% endblock %}
+    {% block scripts %}{% endblock %}
 </body>
+
 </html>

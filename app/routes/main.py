@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for
-from app.models import Student, Attendance, Subject
+from app.models import Student, Attendance, Department
 from app import db
 from datetime import date, datetime, timedelta
 from sqlalchemy import func
@@ -16,7 +16,7 @@ def dashboard():
     today = date.today()
     total_students = Student.query.filter_by(is_active=True).count()
     today_attendance = Attendance.query.filter_by(date=today).count()
-    total_subjects = Subject.query.count()
+    total_departments = Department.query.count()
 
     # Attendance percentage today
     attendance_pct = 0
@@ -44,7 +44,7 @@ def dashboard():
     stats = {
         'total_students': total_students,
         'today_attendance': today_attendance,
-        'total_subjects': total_subjects,
+        'total_departments': total_departments,
         'attendance_pct': attendance_pct,
     }
 

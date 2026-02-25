@@ -25,10 +25,10 @@
     </div>
     <div class="col-xl-3 col-md-6">
         <div class="stat-card stat-card-purple">
-            <div class="stat-icon"><i class="bi bi-book-fill"></i></div>
+            <div class="stat-icon"><i class="bi bi-building"></i></div>
             <div class="stat-info">
-                <div class="stat-value">{{ stats.total_subjects if stats else 0 }}</div>
-                <div class="stat-label">Subjects</div>
+                <div class="stat-value">{{ stats.total_departments if stats else 0 }}</div>
+                <div class="stat-label">Departments</div>
             </div>
         </div>
     </div>
@@ -80,7 +80,7 @@
                             <div class="activity-name">{{ r.student.name if r.student else 'Unknown' }}</div>
                             <div class="activity-meta">
                                 {{ r.time_in.strftime('%H:%M') if r.time_in else '' }}
-                                {% if r.subject %} · {{ r.subject.name }}{% endif %}
+                                {% if r.student.department %} · {{ r.student.department }}{% endif %}
                             </div>
                         </div>
                         <span class="badge-status badge-present">Present</span>
@@ -116,8 +116,8 @@
                     <a href="{{ url_for('students.add_student') }}" class="btn btn-success">
                         <i class="bi bi-person-plus-fill me-2"></i>Add Student
                     </a>
-                    <a href="{{ url_for('attendance.list_subjects') }}" class="btn btn-info text-white">
-                        <i class="bi bi-book-fill me-2"></i>Manage Subjects
+                    <a href="{{ url_for('attendance.list_departments') }}" class="btn btn-info text-white">
+                        <i class="bi bi-building me-2"></i>Manage Departments
                     </a>
                     <a href="{{ url_for('reports.reports_page') }}" class="btn btn-warning text-dark">
                         <i class="bi bi-download me-2"></i>Export Report

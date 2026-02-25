@@ -12,11 +12,11 @@
                 <input type="date" class="form-control" id="filter-date" value="{{ '' }}">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Subject</label>
-                <select class="form-select" id="filter-subject">
-                    <option value="">All Subjects</option>
-                    {% for s in subjects %}
-                    <option value="{{ s.id }}">{{ s.name }}</option>
+                <label class="form-label">Department</label>
+                <select class="form-select" id="filter-department">
+                    <option value="">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.name }}">{{ d.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -55,15 +55,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
-                <select class="form-select" id="manual-subject">
-                    <option value="">Select Subject</option>
-                    {% for s in subjects %}
-                    <option value="{{ s.id }}">{{ s.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-2">
+            <div class="col-md-5">
                 <input type="date" class="form-control" id="manual-date">
             </div>
             <div class="col-md-2">
@@ -99,7 +91,7 @@
                     <tr>
                         <th>Student</th>
                         <th>Roll No</th>
-                        <th>Subject</th>
+                        <th>Department</th>
                         <th>Date</th>
                         <th>Time</th>
                         <th>Status</th>
@@ -127,12 +119,12 @@
 
     function loadRecords() {
         const date = document.getElementById('filter-date').value;
-        const subject = document.getElementById('filter-subject').value;
+        const department = document.getElementById('filter-department').value;
         const student = document.getElementById('filter-student').value;
 
         let url = '/attendance/api/records?per_page=100';
         if (date) url += `&date=${date}`;
-        if (subject) url += `&subject_id=${subject}`;
+        if (department) url += `&department=${encodeURIComponent(department)}`;
         if (student) url += `&student_id=${student}`;
 
         fetch(url)
@@ -148,7 +140,7 @@
             <tr>
                 <td><strong>${r.student_name || '—'}</strong></td>
                 <td><code>${r.student_roll || ''}</code></td>
-                <td>${r.subject_name || '<span class="text-muted">—</span>'}</td>
+                <td>${r.student_department || '<span class="text-muted">—</span>'}</td>
                 <td>${r.date}</td>
                 <td>${r.time_in || '—'}</td>
                 <td><span class="badge-status badge-${r.status}">${r.status}</span></td>
@@ -175,7 +167,6 @@
 
     function manualMark() {
         const student_id = document.getElementById('manual-student').value;
-        const subject_id = document.getElementById('manual-subject').value;
         const date = document.getElementById('manual-date').value;
         const status = document.getElementById('manual-status').value;
 
@@ -184,7 +175,7 @@
         fetch('/attendance/api/manual', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ student_id: parseInt(student_id), subject_id: subject_id ? parseInt(subject_id) : null, date, status })
+            body: JSON.stringify({ student_id: parseInt(student_id), date, status })
         })
             .then(r => r.json())
             .then(data => {

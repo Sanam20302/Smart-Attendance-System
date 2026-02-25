@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify
-from app.models import Attendance, Student, Subject
+from app.models import Attendance, Student, Department
 from app import db
 from datetime import date, datetime
 
@@ -8,15 +8,15 @@ attendance_bp = Blueprint('attendance', __name__)
 
 @attendance_bp.route('/')
 def list_attendance():
-    subjects = Subject.query.order_by(Subject.name).all()
+    departments = Department.query.order_by(Department.name).all()
     students = Student.query.filter_by(is_active=True).order_by(Student.name).all()
-    return render_template('attendance.html', subjects=subjects, students=students)
+    return render_template('attendance.html', departments=departments, students=students)
 
 
 @attendance_bp.route('/api/records')
 def api_records():
     filter_date = request.args.get('date')
-    filter_subject = request.args.get('subject_id', type=int)
+    filter_department = request.args.get('department')
     filter_student = request.args.get('student_id', type=int)
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 50, type=int)
@@ -29,8 +29,8 @@ def api_records():
             query = query.filter_by(date=d)
         except ValueError:
             pass
-    if filter_subject:
-        query = query.filter_by(subject_id=filter_subject)
+    if filter_department:
+        query = query.join(Student).filter(Student.department == filter_department)
     if filter_student:
         query = query.filter_by(student_id=filter_student)
 
@@ -49,7 +49,6 @@ def api_records():
 def mark_attendance():
     data = request.get_json()
     student_db_id = data.get('student_db_id')
-    subject_id = data.get('subject_id')
     confidence = data.get('confidence', 0.0)
     today = date.today()
     now = datetime.now().time()
@@ -61,11 +60,10 @@ def mark_attendance():
     if not student:
         return jsonify({'success': False, 'error': 'Student not found'}), 404
 
-    # Avoid duplicate for same student same day same subject
+    # Avoid duplicate for same student same day
     existing = Attendance.query.filter_by(
         student_id=student.id,
-        date=today,
-        subject_id=subject_id
+        date=today
     ).first()
 
     if existing:
@@ -73,7 +71,6 @@ def mark_attendance():
 
     record = Attendance(
         student_id=student.id,
-        subject_id=subject_id,
         date=today,
         time_in=now,
         status='present',
@@ -90,8 +87,7 @@ def mark_attendance():
 def manual_mark():
     """Manually mark attendance for a student."""
     data = request.get_json()
-    student_id = data.get('student_id', type=int) or data.get('student_id')
-    subject_id = data.get('subject_id')
+    student_id = data.get('student_id')
     mark_date_str = data.get('date')
     status = data.get('status', 'present')
 
@@ -109,8 +105,7 @@ def manual_mark():
 
     existing = Attendance.query.filter_by(
         student_id=student.id,
-        date=mark_date,
-        subject_id=subject_id
+        date=mark_date
     ).first()
 
     if existing:
@@ -120,7 +115,6 @@ def manual_mark():
 
     record = Attendance(
         student_id=student.id,
-        subject_id=subject_id,
         date=mark_date,
         time_in=datetime.now().time(),
         status=status,
@@ -139,42 +133,40 @@ def delete_record(record_id):
     return jsonify({'success': True, 'message': 'Record deleted'})
 
 
-# Subjects CRUD
-@attendance_bp.route('/subjects')
-def list_subjects():
-    subjects = Subject.query.order_by(Subject.name).all()
-    return render_template('subjects.html', subjects=subjects)
+# Departments CRUD
+@attendance_bp.route('/departments')
+def list_departments():
+    departments = Department.query.order_by(Department.name).all()
+    return render_template('departments.html', departments=departments)
 
 
-@attendance_bp.route('/subjects/add', methods=['POST'])
-def add_subject():
+@attendance_bp.route('/departments/add', methods=['POST'])
+def add_department():
     data = request.get_json()
     code = data.get('code', '').strip()
     name = data.get('name', '').strip()
-    department = data.get('department', '').strip() or None
-    instructor = data.get('instructor', '').strip() or None
 
     if not code or not name:
         return jsonify({'success': False, 'error': 'Code and Name are required'}), 400
 
-    if Subject.query.filter_by(code=code).first():
-        return jsonify({'success': False, 'error': 'Subject code already exists'}), 400
+    if Department.query.filter_by(code=code).first():
+        return jsonify({'success': False, 'error': 'Department code already exists'}), 400
 
-    subject = Subject(code=code, name=name, department=department, instructor=instructor)
-    db.session.add(subject)
+    department = Department(code=code, name=name)
+    db.session.add(department)
     db.session.commit()
-    return jsonify({'success': True, 'subject': subject.to_dict()})
+    return jsonify({'success': True, 'department': department.to_dict()})
 
 
-@attendance_bp.route('/subjects/<int:subject_id>/delete', methods=['DELETE'])
-def delete_subject(subject_id):
-    subject = Subject.query.get_or_404(subject_id)
-    db.session.delete(subject)
+@attendance_bp.route('/departments/<int:department_id>/delete', methods=['DELETE'])
+def delete_department(department_id):
+    department = Department.query.get_or_404(department_id)
+    db.session.delete(department)
     db.session.commit()
     return jsonify({'success': True})
 
 
-@attendance_bp.route('/subjects/api/list')
-def subjects_api_list():
-    subjects = Subject.query.order_by(Subject.name).all()
-    return jsonify([s.to_dict() for s in subjects])
+@attendance_bp.route('/departments/api/list')
+def departments_api_list():
+    departments = Department.query.order_by(Department.name).all()
+    return jsonify([d.to_dict() for d in departments])

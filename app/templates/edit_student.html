@@ -29,8 +29,13 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Department</label>
-                            <input type="text" class="form-control" name="department"
-                                value="{{ student.department or '' }}">
+                            <select class="form-select" name="department">
+                                <option value="">-- Select Department --</option>
+                                {% for d in departments %}
+                                <option value="{{ d.name }}" {% if student.department==d.name %}selected{% endif %}>{{
+                                    d.name }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Year</label>

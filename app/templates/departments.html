@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Departments - FaceAttend{% endblock %}
+{% block page_title %}Department Management{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Add Department -->
+    <div class="col-lg-4">
+        <div class="card-glass">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-plus-circle-fill me-2 text-primary"></i>Add Department</h6>
+            </div>
+            <div class="card-glass-body">
+                <div class="mb-3">
+                    <label class="form-label">Department Code <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="dept-code" placeholder="e.g. CS">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Department Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="dept-name" placeholder="e.g. Computer Science">
+                </div>
+                <button class="btn btn-primary w-100" onclick="addDepartment()">
+                    <i class="bi bi-plus-lg me-2"></i>Add Department
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department List -->
+    <div class="col-lg-8">
+        <div class="card-glass">
+            <div class="card-glass-header">
+                <h6 class="mb-0 fw-600"><i class="bi bi-building me-2 text-info"></i>All Departments</h6>
+                <small class="text-muted">{{ departments|length }} departments</small>
+            </div>
+            <div class="card-glass-body p-0">
+                {% if departments %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0" id="department-table">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="department-body">
+                            {% for d in departments %}
+                            <tr id="dept-row-{{ d.id }}">
+                                <td><code>{{ d.code }}</code></td>
+                                <td><strong>{{ d.name }}</strong></td>
+                                <td>
+                                    <button class="btn btn-xs btn-outline-danger"
+                                        onclick="deleteDepartment({{ d.id }})">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state py-5">
+                    <i class="bi bi-building"></i>
+                    <p>No departments yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function addDepartment() {
+        const code = document.getElementById('dept-code').value.trim();
+        const name = document.getElementById('dept-name').value.trim();
+
+        if (!code || !name) { showToast('Code and Name are required', 'warning'); return; }
+
+        fetch('/attendance/departments/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, name })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Department added!', 'success');
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    showToast(data.error || 'Failed', 'danger');
+                }
+            });
+    }
+
+    function deleteDepartment(id) {
+        if (!confirm('Delete this department? Existing students will keep the department name string.')) return;
+        fetch(`/attendance/departments/${id}/delete`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById(`dept-row-${id}`).remove();
+                    showToast('Department deleted', 'success');
+                }
+            });
+    }
+</script>
+{% endblock %}

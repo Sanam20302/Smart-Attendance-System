@@ -16,11 +16,11 @@
                 <input type="date" class="form-control" id="rpt-end">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Subject</label>
-                <select class="form-select" id="rpt-subject">
-                    <option value="">All Subjects</option>
-                    {% for s in subjects %}
-                    <option value="{{ s.id }}">{{ s.name }}</option>
+                <label class="form-label">Department</label>
+                <select class="form-select" id="rpt-department">
+                    <option value="">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.name }}">{{ d.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -130,10 +130,10 @@
     function loadReports() {
         const start = document.getElementById('rpt-start').value;
         const end = document.getElementById('rpt-end').value;
-        const subjectId = document.getElementById('rpt-subject').value;
+        const department = document.getElementById('rpt-department').value;
 
         let params = `?start=${start}&end=${end}`;
-        if (subjectId) params += `&subject_id=${subjectId}`;
+        if (department) params += `&department=${encodeURIComponent(department)}`;
 
         fetch('/reports/api/summary' + params)
             .then(r => r.json())
@@ -205,9 +205,9 @@
     function exportCSV() {
         const start = document.getElementById('rpt-start').value;
         const end = document.getElementById('rpt-end').value;
-        const subjectId = document.getElementById('rpt-subject').value;
+        const department = document.getElementById('rpt-department').value;
         let url = `/reports/api/export_csv?start=${start}&end=${end}`;
-        if (subjectId) url += `&subject_id=${subjectId}`;
+        if (department) url += `&department=${encodeURIComponent(department)}`;
         window.location = url;
     }
 

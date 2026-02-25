@@ -2,7 +2,7 @@ import cv2
 import threading
 import numpy as np
 from flask import Blueprint, render_template, Response, request, jsonify, current_app
-from app.models import Student, Subject
+from app.models import Student, Department
 from app import db
 from app.face_utils import load_all_encodings, recognize_faces_in_frame, draw_recognition_results
 from datetime import date, datetime
@@ -15,8 +15,8 @@ _active_sessions = {}  # session_id: CameraSession
 
 
 class CameraSession:
-    def __init__(self, subject_id=None, tolerance=0.5, app=None):
-        self.subject_id = subject_id
+    def __init__(self, closing_time=None, tolerance=0.5, app=None):
+        self.closing_time = closing_time
         self.tolerance = tolerance
         self.cap = None
         self.running = False
@@ -53,31 +53,50 @@ class CameraSession:
             students = Student.query.filter_by(is_active=True).all()
             student_names = {s.student_id: s.name for s in students}
 
-        while self.running and self.cap and self.cap.isOpened():
-            success, frame = self.cap.read()
-            if not success:
-                break
+        try:
+            while self.running and self.cap and self.cap.isOpened():
+                success, frame = self.cap.read()
+                if not success:
+                    break
 
-            frame_idx += 1
-            if frame_idx % skip == 0:
-                results = recognize_faces_in_frame(frame, known_encodings, self.tolerance)
-                self.last_results = results
+                frame_idx += 1
+                if frame_idx % skip == 0:
+                    results = recognize_faces_in_frame(frame, known_encodings, self.tolerance)
+                    self.last_results = results
 
-                # Auto-mark attendance for recognized faces
-                with self.app.app_context():
-                    for result in results:
-                        key = result['student_db_key']
-                        if key and key not in self.marked_today and result['confidence'] > 0.6:
-                            self._mark_attendance(key, result['confidence'])
+                    # Auto-mark attendance for recognized faces
+                    with self.app.app_context():
+                        now_time = datetime.now().time()
+                        is_closed = False
+                        if self.closing_time:
+                            closing_dt = datetime.strptime(self.closing_time, "%H:%M").time()
+                            if now_time > closing_dt:
+                                is_closed = True
 
-                frame = draw_recognition_results(frame, results, student_names)
+                        if is_closed:
+                            msg = f"⏰ auto-closed (Passed {self.closing_time})."
+                            self.status_messages.insert(0, msg)
+                            self.status_messages = self.status_messages[:20]
+                            self.stop()
+                        else:
+                            for result in results:
+                                key = result['student_db_key']
+                                if key and key not in self.marked_today and result['confidence'] > 0.6:
+                                    self._mark_attendance(key, result['confidence'])
 
-            # Encode and yield
-            ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-            if ret:
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' +
-                       buffer.tobytes() + b'\r\n')
+                    frame = draw_recognition_results(frame, results, student_names)
+
+                if frame is None or frame.size == 0:
+                    continue
+
+                # Encode and yield
+                ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                if ret:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' +
+                           buffer.tobytes() + b'\r\n')
+        finally:
+            self.stop()
 
     def _mark_attendance(self, student_db_key, confidence):
         """Mark attendance in the database."""
@@ -89,15 +108,13 @@ class CameraSession:
             today = date.today()
             existing = Attendance.query.filter_by(
                 student_id=student.id,
-                date=today,
-                subject_id=self.subject_id if self.subject_id else None
+                date=today
             ).first()
             if existing:
                 self.marked_today.add(student_db_key)
                 return
             record = Attendance(
                 student_id=student.id,
-                subject_id=self.subject_id,
                 date=today,
                 time_in=datetime.now().time(),
                 status='present',
@@ -121,15 +138,14 @@ _session_lock = threading.Lock()
 
 @camera_bp.route('/')
 def camera_page():
-    subjects = Subject.query.order_by(Subject.name).all()
-    return render_template('camera.html', subjects=subjects)
+    return render_template('camera.html')
 
 
 @camera_bp.route('/start', methods=['POST'])
 def start_camera():
     global _session
     data = request.get_json() or {}
-    subject_id = data.get('subject_id')
+    closing_time = data.get('closing_time')
     tolerance = float(data.get('tolerance', 0.5))
 
     with _session_lock:
@@ -137,20 +153,12 @@ def start_camera():
             return jsonify({'success': False, 'error': 'Camera already running'})
 
         app = current_app._get_current_object()
-        _session = CameraSession(subject_id=subject_id, tolerance=tolerance, app=app)
+        _session = CameraSession(closing_time=closing_time, tolerance=tolerance, app=app)
         ok, err = _session.start()
         if not ok:
             _session = None
             return jsonify({'success': False, 'error': err})
 
-    # Start frame generation in background thread
-    def run():
-        for _ in _session.generate_frames():
-            if not _session.running:
-                break
-
-    t = threading.Thread(target=run, daemon=True)
-    t.start()
     return jsonify({'success': True, 'message': 'Camera started'})
 
 
@@ -190,11 +198,11 @@ def video_feed():
 @camera_bp.route('/status')
 def camera_status():
     global _session
-    if not _session or not _session.running:
+    if not _session:
         return jsonify({'running': False, 'marked_count': 0, 'messages': []})
 
     return jsonify({
-        'running': True,
+        'running': _session.running,
         'marked_count': len(_session.marked_today),
         'marked_students': list(_session.marked_today),
         'messages': _session.status_messages

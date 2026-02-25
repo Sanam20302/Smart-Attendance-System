@@ -515,6 +515,11 @@ body {
 .form-control::placeholder { color: var(--text-muted); }
 .form-label { color: #94a3b8; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; }
 
+.form-select option {
+    background-color: #334155; /* Dark gray */
+    color: var(--text-primary);
+}
+
 .form-range { filter: hue-rotate(220deg); }
 
 /* -------- Tables -------- */

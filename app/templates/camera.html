@@ -39,13 +39,9 @@
             </div>
             <div class="card-glass-body">
                 <div class="mb-3">
-                    <label class="form-label">Subject <small class="text-muted">(optional)</small></label>
-                    <select class="form-select" id="subject-select">
-                        <option value="">-- Select Subject --</option>
-                        {% for s in subjects %}
-                        <option value="{{ s.id }}">{{ s.name }} ({{ s.code }})</option>
-                        {% endfor %}
-                    </select>
+                    <label class="form-label">Attendance Closing Time <small
+                            class="text-muted">(optional)</small></label>
+                    <input type="time" class="form-control" id="closing-time">
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Recognition Tolerance</label>
@@ -109,13 +105,13 @@
     });
 
     function startCamera() {
-        const subjectId = document.getElementById('subject-select').value || null;
+        const closingTime = document.getElementById('closing-time').value || null;
         const tolerance = parseFloat(document.getElementById('tolerance').value);
 
         fetch('/camera/start', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subject_id: subjectId ? parseInt(subjectId) : null, tolerance })
+            body: JSON.stringify({ closing_time: closingTime, tolerance })
         })
             .then(r => r.json())
             .then(data => {
@@ -158,6 +154,20 @@
             fetch('/camera/status')
                 .then(r => r.json())
                 .then(data => {
+                    if (isRunning && data.running === false) {
+                        // Backend auto-stopped camera (e.g. closing time reached)
+                        isRunning = false;
+                        document.getElementById('start-btn').disabled = false;
+                        document.getElementById('stop-btn').disabled = true;
+                        document.getElementById('cam-status-dot').classList.remove('active');
+                        document.getElementById('cam-status-text').textContent = 'Auto-Stopped';
+                        document.getElementById('camera-overlay').style.display = 'flex';
+                        document.getElementById('cam-badge').style.display = 'none';
+                        document.getElementById('camera-feed').src = '';
+                        showToast('Session automatically closed', 'info');
+                        if (statusInterval) { clearInterval(statusInterval); statusInterval = null; }
+                    }
+
                     document.getElementById('marked-count').textContent = data.marked_count || 0;
                     const log = document.getElementById('log');
                     if (data.messages && data.messages.length > 0) {
