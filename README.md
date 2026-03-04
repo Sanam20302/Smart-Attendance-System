@@ -1,25 +1,18 @@
-# 🎓 FaceAttend — Automatic Face Recognition Attendance System
-
+# FaceAttend — Automatic Face Recognition Attendance System
 A web-based attendance tracking system that uses deep learning face recognition to automatically mark student attendance in real time.
 
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue) ![Flask](https://img.shields.io/badge/Flask-2.3%2B-lightgrey) ![OpenCV](https://img.shields.io/badge/OpenCV-4.8%2B-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
----
+## Features
+- **Live Face Recognition** — Webcam-based real-time detection and recognition
+- **Auto Attendance Marking** — Marks attendance the moment a student is recognized
+- **Student Management** — Add, edit, and delete students with face photo registration
+- **Subject Management** — Organize attendance sessions by subject/course
+- **Attendance Records** — Filter, view, manually adjust, or delete records
+- **Reports & Analytics** — Date-range summaries, trend charts, and per-student statistics
+- **CSV Export** — Download attendance data as spreadsheets
 
-## ✨ Features
-
-- 📸 **Live Face Recognition** — Webcam-based real-time detection and recognition
-- ✅ **Auto Attendance Marking** — Marks attendance the moment a student is recognized
-- 👩‍🎓 **Student Management** — Add, edit, and delete students with face photo registration
-- 📚 **Subject Management** — Organize attendance sessions by subject/course
-- 📋 **Attendance Records** — Filter, view, manually adjust, or delete records
-- 📊 **Reports & Analytics** — Date-range summaries, trend charts, and per-student statistics
-- 📥 **CSV Export** — Download attendance data as spreadsheets
-
----
-
-## 🖥️ Tech Stack
-
+## Tech Stack
 | Layer | Technology |
 |---|---|
 | Backend | Python, Flask, SQLAlchemy, Flask-Migrate |
@@ -27,18 +20,12 @@ A web-based attendance tracking system that uses deep learning face recognition 
 | Database | SQLite (file-based, zero config) |
 | Frontend | Bootstrap 5, Chart.js, Vanilla JS |
 
----
-
-## 📋 Prerequisites
-
+## Prerequisites
 - Python **3.9+** (tested up to 3.13)
 - `git`
 - A working **webcam** for live attendance
 
----
-
-## 🚀 Installation
-
+## Installation
 ### 1. Clone the repository
 
 ```bash
@@ -86,9 +73,7 @@ python run.py
 
 Open your browser at **[http://localhost:5000](http://localhost:5000)**
 
----
-
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 attendence_system/
@@ -113,9 +98,7 @@ data/
 └── encodings/               # Face encodings stored as .pkl (auto-created)
 ```
 
----
-
-## 📖 Usage Guide
+## Usage Guide
 
 ### Step 1 — Add Subjects
 Go to **Subjects** in the sidebar → add the courses you teach (e.g., `CS301 – Data Structures`).
@@ -137,11 +120,17 @@ Go to **Live Attendance**
 - **Attendance Records** — filter by date, subject, or student; manually mark or delete entries
 - **Reports** — generate summaries for any date range, view trends, export CSV
 
----
+## API Documentation
+API endpoints are documented within the respective route files.
 
-## ⚙️ Configuration
+## Testing
+Testing is crucial for ensuring the system works as expected. However, due to the complexity and the nature of the project, testing is not fully covered in this documentation.
 
-Edit `config.py` to adjust behaviour:
+## Deployment
+For production deployment, consider using a WSGI server like Gunicorn and a reverse proxy like Nginx. Ensure your server has a working webcam for live attendance.
+
+## Configuration
+Edit `config.py` to adjust behavior:
 
 | Setting | Default | Description |
 |---|---|---|
@@ -150,10 +139,7 @@ Edit `config.py` to adjust behaviour:
 | `UPLOAD_FOLDER` | `static/student_photos` | Where student photos are saved |
 | `ENCODINGS_FOLDER` | `data/encodings` | Where face encodings (`.pkl`) are stored |
 
----
-
-## 🛠️ Troubleshooting
-
+## Troubleshooting
 | Problem | Fix |
 |---|---|
 | `Cannot import 'setuptools.build_meta'` | Run `pip install setuptools wheel` first, then retry |
@@ -162,8 +148,5 @@ Edit `config.py` to adjust behaviour:
 | Camera not opening | Check webcam permissions; try changing camera index in `camera.py` from `0` to `1` |
 | CSS not loading | Ensure `static_folder='../static'` is set in `app/__init__.py` |
 
----
-
-## 📄 License
-
+## License
 MIT — free to use for educational and personal projects.
